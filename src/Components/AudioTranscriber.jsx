@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ChosseScript from "./ChosseScript";
 
 const AudioTranscriber = () => {
-  const [searchParams] = useSearchParams();
+  const { mode } = useParams();
   const navigate = useNavigate();
   const [audioFile, setAudioFile] = useState(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -18,20 +18,19 @@ const AudioTranscriber = () => {
   const [suggestedMode, setSuggestedMode] = useState(null);
 
   useEffect(() => {
-    const mode = searchParams.get("mode");
     const validModes = ["ar-ar", "ar-en", "en-ar", "en-en"];
     if (mode && validModes.includes(mode)) {
       setTranscriptionMode(mode);
       setShowModeSelector(false);
     }
-  }, [searchParams]);
+  }, [mode]);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 25 * 1024 * 1024) {
         // 25MB limit
-        setError("حجم الملف يجب أن يكون أقل من 25 ميجابايت");
+        setError("File size must be less than 25MB");
         return;
       }
       setAudioFile(file);
@@ -42,21 +41,16 @@ const AudioTranscriber = () => {
 
   const handleGoSuggested = () => {
     if (!suggestedMode) return;
-    navigate(`/transcribe?mode=${suggestedMode}`);
+    navigate(`/transcribeDetails/${suggestedMode}`);
     setSuggestedMode(null);
     setError("");
     setAudioFile(null);
+    setFileName("");
     setTranscription("");
     setShowModeSelector(false);
   };
 
-  const handleGoChoose = () => {
-    navigate("/choose");
-    setSuggestedMode(null);
-    setError("");
-    setAudioFile(null);
-    setTranscription("");
-  };
+  
 
   const detectAudioLanguage = async (audioUrl) => {
     // Make a lightweight detection request
@@ -74,7 +68,7 @@ const AudioTranscriber = () => {
       }),
     });
     const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || "فشل بدء اكتشاف اللغة");
+    if (!resp.ok) throw new Error(data.error || "Failed to start language detection");
 
     // poll until completed
     // reuse same polling style
@@ -94,7 +88,7 @@ const AudioTranscriber = () => {
         return status.language_code || status.detected_language || null;
       }
       if (status.status === "error") {
-        throw new Error(status.error || "فشل اكتشاف اللغة");
+        throw new Error(status.error || "Failed to detect language");
       }
       await new Promise((r) => setTimeout(r, 1500));
     }
@@ -132,15 +126,15 @@ const AudioTranscriber = () => {
                 const data = JSON.parse(xhr.responseText);
                 resolve(data);
               } catch {
-                reject(new Error("فشل قراءة استجابة الرفع"));
+                reject(new Error("Failed to read upload response"));
               }
             } else {
-              reject(new Error("فشل رفع الملف"));
+              reject(new Error("File upload failed"));
             }
           }
         };
 
-        xhr.onerror = () => reject(new Error("خطأ في الاتصال أثناء الرفع"));
+        xhr.onerror = () => reject(new Error("Connection error during upload"));
 
         xhr.send(file);
       } catch (err) {
@@ -164,7 +158,7 @@ const AudioTranscriber = () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file.size > 25 * 1024 * 1024) {
-        setError("حجم الملف يجب أن يكون أقل من 25 ميجابايت");
+        setError("File size must be less than 25MB");
         return;
       }
       setAudioFile(file);
@@ -178,26 +172,26 @@ const AudioTranscriber = () => {
       "ar-ar": {
         language_code: "ar",
         targetLanguage: "ar",
-        label: "عربي إلى عربي",
-        description: "تحويل الصوت العربي إلى نص عربي",
+        label: "Arabic to Arabic",
+        description: "Convert Arabic audio to Arabic text",
       },
       "ar-en": {
         language_code: "ar",
         targetLanguage: "en",
-        label: "عربي إلى إنجليزي",
-        description: "تحويل الصوت العربي إلى نص إنجليزي",
+        label: "Arabic to English",
+        description: "Convert Arabic audio to English text",
       },
       "en-ar": {
         language_code: "en",
         targetLanguage: "ar",
-        label: "إنجليزي إلى عربي",
-        description: "تحويل الصوت الإنجليزي إلى نص عربي",
+        label: "English to Arabic",
+        description: "Convert English audio to Arabic text",
       },
       "en-en": {
         language_code: "en",
         targetLanguage: "en",
-        label: "إنجليزي إلى إنجليزي",
-        description: "تحويل الصوت الإنجليزي إلى نص إنجليزي",
+        label: "English to English",
+        description: "Convert English audio to English text",
       },
     };
     return settings[mode] || settings["ar-ar"];
@@ -205,7 +199,7 @@ const AudioTranscriber = () => {
 
   const transcribeAudio = async () => {
     if (!audioFile) {
-      setError("الرجاء اختيار ملف صوتي أولاً");
+      setError("Please select an audio file first");
       return;
     }
 
@@ -243,8 +237,8 @@ const AudioTranscriber = () => {
         setIsTranscribing(false);
         setError(
           detectedLang === "en"
-            ? "الملف المرفوع لغته إنجليزي، بينما اخترت وضع مصدر عربي. من فضلك انتقل إلى الاسكربت المناسب."
-            : "الملف المرفوع لغته عربي، بينما اخترت وضع مصدر إنجليزي. من فضلك انتقل إلى الاسكربت المناسب."
+            ? "The uploaded file is in English, but you selected Arabic as the source language. Please switch to the appropriate script."
+            : "The uploaded file is in Arabic, but you selected English as the source language. Please switch to the appropriate script."
         );
         return;
       }
@@ -281,7 +275,7 @@ const AudioTranscriber = () => {
 
       const transcriptResponse = await response.json();
       if (!response.ok) {
-        throw new Error(transcriptResponse.error || "فشل بدء عملية التحويل");
+        throw new Error(transcriptResponse.error || "Failed to start conversion process");
       }
 
       // 3. Poll for transcription result
@@ -308,21 +302,21 @@ const AudioTranscriber = () => {
             ) {
               setTranscription(
                 statusData.translated_texts[languageSettings.targetLanguage] ||
-                  "لا يوجد نص مترجم"
+                  "No translated text available"
               );
             } else {
-              setTranscription(statusData.text || "لا يوجد نص معروف");
+              setTranscription(statusData.text || "No text available");
             }
             setIsTranscribing(false);
           } else if (statusData.status === "error") {
-            throw new Error(statusData.error || "فشل تحويل الصوت إلى نص");
+            throw new Error(statusData.error || "Failed to convert audio to text");
           } else {
             // If not completed and no error, check again after delay
             setTimeout(checkStatus, 2000);
           }
         } catch (err) {
           console.error("Error checking status:", err);
-          setError(`خطأ: ${err.message}`);
+          setError(`Error: ${err.message}`);
           setIsTranscribing(false);
         }
       };
@@ -331,7 +325,7 @@ const AudioTranscriber = () => {
       checkStatus();
     } catch (err) {
       console.error("Error transcribing audio:", err);
-      setError(`حدث خطأ: ${err.message || "يرجى المحاولة مرة أخرى"}`);
+      setError(`An error occurred: ${err.message || "Please try again"}`);
       setIsTranscribing(false);
       setIsUploading(false);
     }
@@ -371,10 +365,10 @@ const AudioTranscriber = () => {
           />
         </svg>
         <p className="text-lg font-medium text-gray-700">
-          {fileName || "اسحب وأفلت ملف صوتي هنا"}
+          {fileName || "Drag and drop an audio file here"}
         </p>
         <p className="text-sm text-gray-500">
-          أو انقر للاختيار من جهازك (الحد الأقصى 25 ميجابايت)
+          or click to select from your device (max 25MB)
         </p>
       </div>
     </div>
@@ -383,7 +377,7 @@ const AudioTranscriber = () => {
   const renderTranscriptionResult = () => (
     <div className="mt-6 space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">النص الناتج:</h3>
+        <h3 className="text-lg font-semibold">Transcription Result:</h3>
         <div className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
           {getLanguageSettings(transcriptionMode).label}
         </div>
@@ -394,7 +388,7 @@ const AudioTranscriber = () => {
           <p className="whitespace-pre-line text-gray-800">{transcription}</p>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <p>سيظهر النص المحول هنا</p>
+            <p>Transcribed text will appear here</p>
           </div>
         )}
       </div>
@@ -408,7 +402,7 @@ const AudioTranscriber = () => {
           }}
           className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
         >
-          بدء تحويل جديد
+          Start New Conversion
         </button>
       </div>
     </div>
@@ -416,12 +410,12 @@ const AudioTranscriber = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-6">
-      <div className="bg-white rounded-xl shadow-sm">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">
-          تحويل الصوت إلى نص
+      <div className="bg-background2 rounded-xl shadow-sm pt-4">
+        <h2 className="text-2xl font-bold text-center text-text1 mb-2">
+          Audio to Text Conversion
         </h2>
-        <p className="text-gray-600 text-center">
-          قم بتحويل ملفاتك الصوتية إلى نصوص بدقة عالية
+        <p className="text-text1 text-center">
+          Convert your audio files to text with high accuracy
         </p>
         {!showModeSelector && (
           <div className="mt-4 flex justify-center">
@@ -445,7 +439,7 @@ const AudioTranscriber = () => {
             {!transcription ? renderUploader() : renderTranscriptionResult()}
 
             {!transcription && audioFile && (
-              <div className="mt-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg">
+              <div className="mt-4 flex items-center justify-between p-3 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <svg
                     className="w-5 h-5 text-blue-600"
@@ -460,7 +454,7 @@ const AudioTranscriber = () => {
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-text1">
                     {fileName}
                   </span>
                 </div>
@@ -486,15 +480,15 @@ const AudioTranscriber = () => {
             )}
 
             {isUploading && (
-              <div className="mt-4">
+              <div className="mt-4 bg-background2">
                 <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-3 bg-blue-600 transition-all"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
-                <div className="mt-2 text-sm text-gray-700 text-center">
-                  جاري رفع الملف... {uploadProgress}%
+                <div className="mt-2 text-sm text-text1 text-center">
+                  Uploading file... {uploadProgress}%
                 </div>
               </div>
             )}
@@ -508,13 +502,12 @@ const AudioTranscriber = () => {
                       onClick={handleGoSuggested}
                       className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
                     >
-                      الانتقال إلى الاسكربت المناسب
+                      Go to the appropriate script
                     </button>
                     <button
-                      onClick={handleGoChoose}
                       className="px-3 py-1.5 bg-gray-200 text-gray-800 rounded-md text-sm hover:bg-gray-300"
                     >
-                      اختيار وضع آخر
+                      Choose another mode
                     </button>
                   </div>
                 )}
@@ -525,10 +518,10 @@ const AudioTranscriber = () => {
               <button
                 onClick={transcribeAudio}
                 disabled={isTranscribing || isUploading}
-                className={`mt-6 w-full py-3 px-6 rounded-lg text-white font-medium text-lg flex items-center justify-center space-x-2 ${
+                className={`mt-6 w-full py-3 px-6 rounded-lg text-black font-medium duration-300 shadow-lg shadow-gray-400 text-lg flex items-center justify-center space-x-2 ${
                   isTranscribing || isUploading
-                    ? "bg-blue-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
+                    ? "bg-background2 cursor-not-allowed"
+                    : "bg-gray-300 hover:bg-gray-400 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer"
                 }`}
               >
                 {isUploading ? (
@@ -553,7 +546,7 @@ const AudioTranscriber = () => {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    جاري رفع الملف... {uploadProgress}%
+                    Uploading file... {uploadProgress}%
                   </>
                 ) : isTranscribing ? (
                   <>
@@ -577,7 +570,7 @@ const AudioTranscriber = () => {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    جاري التحويل...
+                    Converting...
                   </>
                 ) : (
                   <>
@@ -594,7 +587,7 @@ const AudioTranscriber = () => {
                         d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-6-18v4m0 0H8m4 0h4M5 7a2 2 0 100-4 2 2 0 000 4z"
                       />
                     </svg>
-                    <span>بدء التحويل</span>
+                    <span>Start Conversion</span>
                   </>
                 )}
               </button>

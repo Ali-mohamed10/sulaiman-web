@@ -1,8 +1,12 @@
 import { auth, provider } from "../Firebase/firebase.config";
 import { signInWithPopup } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-export default function SignUp({ setIsLogin }) {
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+
+export default function SignUp() {
   const navigate = useNavigate();
+  const { setIsLogin } = useContext(AuthContext);
   const signInWithGoogle = () => {
     signInWithPopup(auth, provider)
       .then((result) => {
