@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../Firebase/firebase.config";
 import { useTheme } from "next-themes";
@@ -30,6 +30,7 @@ const MountainIcon = ({ className }) => (
 );
 const Nav = ({ isLogin, setIsLogin }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme } = useTheme();
   const userName = localStorage.getItem("userName") || "";
 
