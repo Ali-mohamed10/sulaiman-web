@@ -16,7 +16,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-2xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+            <h1 className="main-title text-2xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Discover Free AI Tools That Make Your Work Easier
             </h1>
             <p className="mt-6 text-base md:text-lg text-gray-600 dark:text-gray-300">

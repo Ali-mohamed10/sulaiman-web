@@ -10,6 +10,8 @@ const SignUp = lazy(() => import("./Auth/SignUp"));
 const AudioTranscriber = lazy(() => import("./Components/AudioTranscriber"));
 const ChosseScript = lazy(() => import("./Components/ChosseScript"));
 const LoveCounter = lazy(() => import("./Components/LoveCounter"));
+const KeywordTool = lazy(() => import("./Pages/KeywordTool"));
+const KeywordDashboard = lazy(() => import("./Pages/KeywordTool/Dashboard"));
 
 const AnimatedOutlet = () => {
   const location = useLocation();
@@ -72,6 +74,22 @@ const App = () => {
               element={
                 <Suspense fallback={<Loader />}>
                   <LoveCounter />
+                </Suspense>
+              }
+            />
+            <Route
+              path="keyword-tool"
+              element={
+                <Suspense fallback={<Loader />}>
+                  <KeywordTool />
+                </Suspense>
+              }
+            />
+            <Route
+              path="keyword-tool/dashboard"
+              element={
+                <Suspense fallback={<Loader />}>
+                  <KeywordDashboard />
                 </Suspense>
               }
             />

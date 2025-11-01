@@ -65,7 +65,7 @@ const Nav = ({ isLogin, setIsLogin }) => {
             <a href="#" className="flex items-center gap-2">
               <MountainIcon className="h-6 w-6 text-gray-900 dark:text-white" />
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                Acme Inc
+                AI Tool Hub
               </span>
             </a>
           </div>

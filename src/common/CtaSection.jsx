@@ -10,9 +10,9 @@ export default function CtaSection() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-linear-to-r from-[--color-primary] to-[--color-secondary] rounded-2xl px-6 py-12 sm:p-12">
             <div className="text-center">
-              <h2 className="text-xl md:text-3xl font-bold mb-4">
+              <h1 className="mb-4">
                 Ready to explore all our free tools?
-              </h2>
+              </h1>
               <p className="text-base md:text-xl mb-8 max-w-2xl mx-auto">
                 Join thousands of users who are already boosting their
                 productivity with our AI tools.

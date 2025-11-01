@@ -1,3 +1,23 @@
 body {
   background-color: var(--color-background1);
 }
+h1:not(.main-title) {
+  font-size: 25px;
+  font-weight: bold;
+}
+h2 {
+  font-size: 20px;
+}
+
+@media (width >= 40rem) {
+  h1:not(.main-title) {
+    font-size: 40px;
+  }
+  h2 {
+    font-size: 35px;
+  }
+}
+button {
+  cursor: pointer;
+  white-space: nowrap;
+}

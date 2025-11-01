@@ -52,7 +52,7 @@ export default function OurTools() {
       title: "SEO Keyword Generator",
       description:
         "Generate high-ranking SEO keywords for your content strategy.",
-      to: isLoggedIn ? "/seo-keywords" : "/signup",
+      to: isLoggedIn ? "/keyword-tool" : "/signup",
     },
     {
       icon: EditIcon,
@@ -76,9 +76,9 @@ export default function OurTools() {
       <div id="tools" className="py-16 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-gray-900 dark:text-white">
               Our Powerful AI Tools
-            </h2>
+            </h1>
             <p className="mt-4 text-base md:text-xl text-gray-600 dark:text-gray-300">
               Everything you need to enhance your productivity
             </p>

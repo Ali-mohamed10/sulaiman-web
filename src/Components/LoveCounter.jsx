@@ -150,7 +150,7 @@ export default function LoveCounter() {
               type="submit"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-full sm:w-auto text-sm sm:text-base mx-auto block bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-2 px-4 sm:py-4 sm:px-8 rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/50 transition-all duration-300 text-lg"
+              className="w-full sm:w-auto sm:text-base mx-auto block bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-2 px-4 sm:py-4 sm:px-8 rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/50 transition-all duration-300 text-lg"
             >
               Show Our Love Story 💕
             </motion.button>

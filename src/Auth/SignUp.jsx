@@ -24,9 +24,9 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Welcome</h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background1 p-4">
+      <div className="bg-background2 p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 className="text-center text-text1 mb-6">Welcome</h1>
         <p className="text-center text-gray-600 mb-6">Sign up with Google to continue</p>
         <button 
           onClick={signInWithGoogle}

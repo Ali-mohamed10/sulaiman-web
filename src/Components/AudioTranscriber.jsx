@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 import ChosseScript from "./ChosseScript";
 
 const AudioTranscriber = () => {
@@ -50,39 +51,41 @@ const AudioTranscriber = () => {
     setShowModeSelector(false);
   };
 
-  
-
   const detectAudioLanguage = async (audioUrl) => {
     // Make a lightweight detection request
-    const resp = await fetch("https://api.assemblyai.com/v2/transcript", {
-      method: "POST",
-      headers: {
-        authorization: "9b452376153748d6a5e309b408059e81",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
+    const resp = await axios.post(
+      "https://api.assemblyai.com/v2/transcript",
+      {
         audio_url: audioUrl,
         language_detection: true,
         punctuate: false,
         speech_understanding: undefined,
-      }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || "Failed to start language detection");
+      },
+      {
+        headers: {
+          authorization: import.meta.env.VITE_ASSEMBLYAI_API_KEY,
+          "content-type": "application/json",
+        },
+      }
+    );
+    const data = resp.data;
+    if (resp.status < 200 || resp.status >= 300) {
+      throw new Error(data.error || "Failed to start language detection");
+    }
 
     // poll until completed
     // reuse same polling style
     while (true) {
-      const statusResp = await fetch(
+      const statusResp = await axios.get(
         `https://api.assemblyai.com/v2/transcript/${data.id}`,
         {
           headers: {
-            authorization: "9b452376153748d6a5e309b408059e81",
+            authorization: import.meta.env.VITE_ASSEMBLYAI_API_KEY,
             "content-type": "application/json",
           },
         }
       );
-      const status = await statusResp.json();
+      const status = statusResp.data;
       if (status.status === "completed") {
         // language might be in language_code or detected_language
         return status.language_code || status.detected_language || null;
@@ -94,53 +97,33 @@ const AudioTranscriber = () => {
     }
   };
 
-  const uploadFileWithProgress = (file) => {
-    return new Promise((resolve, reject) => {
-      try {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "https://api.assemblyai.com/v2/upload");
-        xhr.setRequestHeader(
-          "authorization",
-          "9b452376153748d6a5e309b408059e81"
-        );
-        // content-type should be the file type or omitted for browser to set boundary
-        if (file && file.type) {
-          try {
-            xhr.setRequestHeader("content-type", file.type);
-          } catch {
-            // ignore if browser controls it
-          }
-        }
+  const uploadFileWithProgress = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(percent);
-          }
-        };
-
-        xhr.onreadystatechange = () => {
-          if (xhr.readyState === 4) {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const data = JSON.parse(xhr.responseText);
-                resolve(data);
-              } catch {
-                reject(new Error("Failed to read upload response"));
-              }
-            } else {
-              reject(new Error("File upload failed"));
+      const response = await axios.post(
+        "https://api.assemblyai.com/v2/upload",
+        formData,
+        {
+          headers: {
+            authorization: import.meta.env.VITE_ASSEMBLYAI_API_KEY,
+            "Content-Type": "multipart/form-data",
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setUploadProgress(percent);
             }
-          }
-        };
-
-        xhr.onerror = () => reject(new Error("Connection error during upload"));
-
-        xhr.send(file);
-      } catch (err) {
-        reject(err);
-      }
-    });
+          },
+        }
+      );
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || "File upload failed");
+    }
   };
 
   const handleDragOver = (e) => {
@@ -244,54 +227,55 @@ const AudioTranscriber = () => {
       }
 
       // 3. Start transcription with language settings
-      const response = await fetch("https://api.assemblyai.com/v2/transcript", {
-        method: "POST",
-        body: JSON.stringify(
-          (() => {
-            const body = {
-              audio_url: uploadData.upload_url,
-              language_code: languageSettings.language_code,
-              speaker_labels: true,
-              punctuate: true,
-              format_text: true,
-              ...(isTranslation && {
-                speech_understanding: {
-                  request: {
-                    translation: {
-                      target_languages: [languageSettings.targetLanguage],
-                    },
-                  },
-                },
-              }),
-            };
-            return body;
-          })()
-        ),
-        headers: {
-          authorization: "9b452376153748d6a5e309b408059e81",
-          "content-type": "application/json",
-        },
-      });
+      const requestBody = {
+        audio_url: uploadData.upload_url,
+        language_code: languageSettings.language_code,
+        speaker_labels: true,
+        punctuate: true,
+        format_text: true,
+        ...(isTranslation && {
+          speech_understanding: {
+            request: {
+              translation: {
+                target_languages: [languageSettings.targetLanguage],
+              },
+            },
+          },
+        }),
+      };
 
-      const transcriptResponse = await response.json();
-      if (!response.ok) {
-        throw new Error(transcriptResponse.error || "Failed to start conversion process");
+      const response = await axios.post(
+        "https://api.assemblyai.com/v2/transcript",
+        requestBody,
+        {
+          headers: {
+            authorization: import.meta.env.VITE_ASSEMBLYAI_API_KEY,
+            "content-type": "application/json",
+          },
+        }
+      );
+
+      const transcriptResponse = response.data;
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(
+          transcriptResponse.error || "Failed to start conversion process"
+        );
       }
 
       // 3. Poll for transcription result
       const checkStatus = async () => {
         try {
-          const statusResponse = await fetch(
+          const statusResponse = await axios.get(
             `https://api.assemblyai.com/v2/transcript/${transcriptResponse.id}`,
             {
               headers: {
-                authorization: "9b452376153748d6a5e309b408059e81",
+                authorization: import.meta.env.VITE_ASSEMBLYAI_API_KEY,
                 "content-type": "application/json",
               },
             }
           );
 
-          const statusData = await statusResponse.json();
+          const statusData = statusResponse.data;
           console.log("Transcription status:", statusData.status);
 
           if (statusData.status === "completed") {
@@ -309,7 +293,9 @@ const AudioTranscriber = () => {
             }
             setIsTranscribing(false);
           } else if (statusData.status === "error") {
-            throw new Error(statusData.error || "Failed to convert audio to text");
+            throw new Error(
+              statusData.error || "Failed to convert audio to text"
+            );
           } else {
             // If not completed and no error, check again after delay
             setTimeout(checkStatus, 2000);
@@ -411,9 +397,9 @@ const AudioTranscriber = () => {
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-6">
       <div className="bg-background2 rounded-xl shadow-sm pt-4">
-        <h2 className="text-2xl font-bold text-center text-text1 mb-2">
+        <h1 className="text-center text-text1 mb-2">
           Audio to Text Conversion
-        </h2>
+        </h1>
         <p className="text-text1 text-center">
           Convert your audio files to text with high accuracy
         </p>
@@ -504,9 +490,7 @@ const AudioTranscriber = () => {
                     >
                       Go to the appropriate script
                     </button>
-                    <button
-                      className="px-3 py-1.5 bg-gray-200 text-gray-800 rounded-md text-sm hover:bg-gray-300"
-                    >
+                    <button className="px-3 py-1.5 bg-gray-200 text-gray-800 rounded-md text-sm hover:bg-gray-300">
                       Choose another mode
                     </button>
                   </div>

@@ -5,18 +5,18 @@
 @layer base {
   :root {
     --whites-color: white;
-    --main-color: #ff1616;
+    --main-color: #155dfc;
     --second-color: #ff1616bf;
     --background1-color: white;
     --background2-color: #fbf9fa;
     --text1-color: #101828;
-    --text2-color: #d1d5dc;
+    --text2-color: #9da1a9;
     --card-color: #ddd;
     --shadow-color: #99a1af;
   }
   .dark {
     --whites-color: black;
-    --main-color: #ff1616;
+    --main-color: #155dfc;
     --second-color: #ff1616bf;
     --background1-color: #101828;
     --background2-color: #1e2939;

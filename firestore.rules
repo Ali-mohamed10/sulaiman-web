@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Keyword searches collection - users can only read/write their own data
+    match /keyword_searches/{documentId} {
+      // Allow read (both get and list) if the document belongs to the authenticated user
+      // Note: For queries, Firestore checks each document's uid against the user's uid
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      
+      // Allow create if the user is authenticated and the uid matches
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      
+      // Allow update if the user owns the document
+      allow update: if request.auth != null && request.auth.uid == resource.data.uid && request.auth.uid == request.resource.data.uid;
+      
+      // Allow delete if the user owns the document
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+    
+    // Default rule: deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
