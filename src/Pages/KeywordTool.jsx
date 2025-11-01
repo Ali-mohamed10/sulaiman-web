@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  getDocs,
+  query,
+  where,
+  serverTimestamp,
+  increment,
+} from "firebase/firestore";
 import { db, auth, provider } from "../Firebase/firebase.config";
 import { onAuthStateChanged, signInWithPopup } from "firebase/auth";
-import Toast from "../Components/Toast";
 
 const STORAGE_KEY = "keyword_tool_data";
 
@@ -16,11 +25,6 @@ export default function KeywordTool() {
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [toast, setToast] = useState({
-    isVisible: false,
-    message: "",
-    type: "success",
-  });
   const navigate = useNavigate();
 
   // Get current user
@@ -39,11 +43,6 @@ export default function KeywordTool() {
       navigate("/keyword-tool/dashboard");
     } catch (error) {
       console.error("Error signing in:", error);
-      setToast({
-        isVisible: true,
-        message: "Failed to sign in. Please try again.",
-        type: "error",
-      });
     }
   };
 
@@ -143,28 +142,51 @@ export default function KeywordTool() {
       // Save to Firestore (only if user is logged in)
       if (user) {
         try {
-          await addDoc(collection(db, "keyword_searches"), {
-            uid: user.uid,
-            keyword: keyword.trim(),
-            searchDate: serverTimestamp(),
-            averageSEOScore: metrics.seoScore,
-            length: metrics.averageLength,
-            relatedKeywords: relatedKeywordsArray,
-          });
+          const trimmedKeyword = keyword.trim();
 
-          // Show success toast
-          setToast({
-            isVisible: true,
-            message: "Keyword analysis saved successfully! 🎉",
-            type: "success",
-          });
+          // Check if a document with the same keyword and userId already exists
+          const existingQuery = query(
+            collection(db, "keyword_searches"),
+            where("uid", "==", user.uid),
+            where("keyword", "==", trimmedKeyword)
+          );
+
+          const existingDocs = await getDocs(existingQuery);
+
+          if (!existingDocs.empty) {
+            // Document exists - update it instead of creating a new one
+            const existingDoc = existingDocs.docs[0];
+            const docRef = doc(db, "keyword_searches", existingDoc.id);
+
+            await updateDoc(docRef, {
+              // Increment searchCount by 1
+              searchCount: increment(1),
+              // Update lastSearch timestamp
+              lastSearch: serverTimestamp(),
+              // Update SEO metrics and related keywords (in case they changed)
+              averageSEOScore: metrics.seoScore,
+              length: metrics.averageLength,
+              relatedKeywords: relatedKeywordsArray,
+            });
+
+            console.log("Updated existing keyword search document");
+          } else {
+            // Document doesn't exist - create a new one
+            await addDoc(collection(db, "keyword_searches"), {
+              uid: user.uid,
+              keyword: trimmedKeyword,
+              searchDate: serverTimestamp(),
+              lastSearch: serverTimestamp(),
+              searchCount: 1,
+              averageSEOScore: metrics.seoScore,
+              length: metrics.averageLength,
+              relatedKeywords: relatedKeywordsArray,
+            });
+
+            console.log("Created new keyword search document");
+          }
         } catch (firestoreError) {
           console.error("Error saving to Firestore:", firestoreError);
-          setToast({
-            isVisible: true,
-            message: "Failed to save to dashboard. Please try again.",
-            type: "error",
-          });
         }
       }
 
@@ -182,11 +204,6 @@ export default function KeywordTool() {
       }
     } catch (err) {
       setError("Failed to fetch keywords. Please try again.");
-      setToast({
-        isVisible: true,
-        message: "Failed to fetch keywords. Please try again.",
-        type: "error",
-      });
     } finally {
       setLoading(false);
     }
@@ -206,20 +223,12 @@ export default function KeywordTool() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 px-3 py-10 text-gray-800 dark:text-gray-100">
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-      />
       <motion.div
         className="text-center mb-6"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="mb-6">
-          🔍 Keyword & SEO Analyzer
-        </h1>
+        <h1 className="mb-6">🔍 Keyword & SEO Analyzer</h1>
         <div className="flex items-center flex-wrap justify-center gap-4">
           {user ? (
             <>
